@@ -1,73 +1,85 @@
 import { Component, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ChatbotService } from '../services/chatbot.service'; // Importa el servicio del chatbot
+import { finalize } from 'rxjs/operators';
 
+// Interfaz que define la estructura de un mensaje en el chat
 interface Message {
-  text: string;
-  sender: 'user' | 'bot';
+  text: string;       // Contenido del mensaje
+  sender: 'user' | 'bot'; // Quién envía el mensaje (usuario o bot)
 }
 
 @Component({
   selector: 'app-chatbot',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule], // Módulos necesarios
   templateUrl: './chatbot.component.html',
-  styleUrls: ['./chatbot.component.css'], // corregí "styleUrl" a "styleUrls"
+  styleUrls: ['./chatbot.component.css'],
 })
 export class ChatbotComponent implements AfterViewInit {
-  userMessage: string = '';
+  userMessage: string = ''; // Almacena el mensaje que el usuario está escribiendo
   messages: Message[] = [
-    { text: 'Hey there 👋 <br> How can i help you today?', sender: 'bot' },
+    { text: 'Hey there 👋 <br> How can i help you today?', sender: 'bot' }, // Mensaje inicial del bot
   ];
-  sendMessage = document.querySelector('#send-message');
-  isThinking: boolean = false;
+  isThinking: boolean = false; // Indica si el bot está procesando una respuesta
 
-  constructor() {}
-
-  ngAfterViewInit() {
-    // Aquí podrías hacer lógica que dependa de que el DOM ya esté cargado, si es necesario
-  }
-
+  // Referencia al contenedor del chat para hacer scroll automático
   @ViewChild('chatBody', { static: false }) chatBody!: ElementRef;
 
+  // Inyecta el servicio del chatbot
+  constructor(private chatbotService: ChatbotService) {}
+
+  ngAfterViewInit() {
+    // Se podría inicializar algo después de que la vista esté lista
+  }
+
+  // Maneja el envío de mensajes (por Enter o botón)
   handleEnter(event?: Event): void {
     if (event) {
-      event.preventDefault();
+      event.preventDefault(); // Previene el comportamiento por defecto si es un evento
     }
 
-    const trimmed = this.userMessage.trim();
+    const trimmed = this.userMessage.trim(); // Elimina espacios en blanco
     if (trimmed) {
-      // Agregar mensaje del usuario
+      // Agrega el mensaje del usuario al historial
       this.messages.push({ text: trimmed, sender: 'user' });
+      this.userMessage = ''; // Limpia el input
 
-      // Limpiar textarea
-      this.userMessage = '';
+      this.isThinking = true; // Indica que el bot está pensando
 
-      // Mostrar animación "pensando"
-      this.isThinking = true;
-
-      // Luego de 2 segundos, mostrar respuesta del bot y quitar animación
-      setTimeout(() => {
-        this.isThinking = false;
-
-        // Aquí iría la lógica real de respuesta del bot
-        this.messages.push({
-          text: "I'm thinking... and here's your answer! 😄",
-          sender: 'bot',
+      // Envía el mensaje al servicio del chatbot
+      this.chatbotService
+        .sendMessageToBot(trimmed)
+        .pipe(
+          // Operador que se ejecuta cuando la suscripción finaliza (éxito o error)
+          finalize(() => {
+            this.isThinking = false; // Deja de mostrar el indicador de "pensando"
+            this.scrollToBottom();  // Asegura que el chat scrollee al final
+          })
+        )
+        .subscribe({
+          next: (response) => {
+            // Maneja la respuesta exitosa del backend
+            console.log('Respuesta del backend:', response);
+            // Agrega la respuesta del bot al historial
+            this.messages.push({ text: response.response, sender: 'bot' });
+            this.scrollToBottom(); // Asegura scroll al final después de agregar mensaje
+          },
+          error: (err) => {
+            // Maneja errores en la comunicación con el backend
+            console.error('Error al obtener respuesta:', err);
+            this.isThinking = false;
+          },
         });
-
-        // Scroll automático al fondo si lo deseas
-        setTimeout(() => {
-          this.scrollToBottom();
-        });
-      }, 2000);
     }
   }
 
+  // Función para hacer scroll automático al final del chat
   scrollToBottom() {
     if (this.chatBody) {
       const el = this.chatBody.nativeElement;
-      el.scrollTop = el.scrollHeight;
+      el.scrollTop = el.scrollHeight; // Mueve el scroll a la parte inferior
     }
   }
 }
