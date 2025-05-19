@@ -3,13 +3,17 @@
 .chatbot-popup {
   position: relative;
   width: 420px;
+  height: 60vh; 
+  max-height: 700px; 
+  min-height: 500px; 
+  display: flex;
+  flex-direction: column;
   background: rgb(253, 253, 253);
   overflow: hidden;
   border-radius: 15px;
   box-shadow: 0 0 128px 0 rgba(0, 0, 0, 0.1),
     0 32px 64px -48px rgba(0, 0, 0, 0.5);
 }
-
 .chat-header {
   display: flex;
   align-items: center;
@@ -62,10 +66,10 @@
   padding: 3% 7%;
   display: flex;
   gap: 20px;
-  height: 50vh;
-  margin-bottom: 5%;
+  flex: 1; /* Ocupa todo el espacio disponible */
   overflow-y: auto;
   flex-direction: column;
+  /* Elimina el margin-bottom y height fijo */
 }
 
 .chat-body .message {
@@ -155,11 +159,13 @@
 }
 
 .chat-footer {
-  position: absolute;
+  position: sticky; /* Cambia de absolute a sticky */
   bottom: 0;
   width: 100%;
   background: #fff;
   padding: 3% 8% 5%;
+  border-top: 1px solid #eee; /* Añade un borde para separación visual */
+  z-index: 1; /* Asegura que esté sobre el contenido */
 }
 
 .chat-footer .chat-form {
@@ -222,4 +228,14 @@
 
 .chat-form .chat-controls #send-message:hover {
   background: #ffa127;
+}
+
+.chat-form {
+  position: relative;
+}
+
+.message-input {
+  max-height: 150px; /* Limita la altura máxima del input */
+  overflow-y: auto; /* Permite scroll cuando hay mucho texto */
+  transition: height 0.2s ease; /* Suaviza el cambio de altura */
 }
